@@ -6,8 +6,16 @@ router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 
 router.get("/", async (request, response) => {
-  const users = await User.findAll();
-  response.json(users);
+  try {
+    const users = await User.findAll();
+    if (users.length === 0) {
+      response.status(204).send("no shows in database");
+    } else {
+      response.json(users);
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
 });
 
 router.get("/:id", async (request, response) => {
@@ -15,7 +23,7 @@ router.get("/:id", async (request, response) => {
     attributes: { exclude: ["password"] },
   });
   if (user === null) {
-    response.status(404).send("Not found");
+    response.status(404).send(`user with id ${request.params.id} not found`);
   } else {
     response.json(user);
   }
@@ -25,9 +33,9 @@ router.get("/:id/watched", async (request, response) => {
   try {
     const user = await User.findByPk(request.params.id);
     if (user === null) {
-      response.status(404).send("Not found");
+      response.status(404).send(`user with id ${request.params.id} not found`);
     } else {
-      const shows = await user.getShows(); // only send back the title
+      const shows = await user.getShows();
       response.json(shows);
     }
   } catch (error) {
@@ -36,6 +44,7 @@ router.get("/:id/watched", async (request, response) => {
 });
 
 router.put("/:userId", async (request, response) => {
+  // body = {showId: 1}
   try {
     const user = await User.findByPk(request.params.userId);
     if (user === null) {
@@ -43,7 +52,7 @@ router.put("/:userId", async (request, response) => {
         .status(404)
         .send(`user with id ${request.params.userId} not found`);
     } else {
-      const foundShow = await Show.findByPk(request.body.showId); // {showId: 1}
+      const foundShow = await Show.findByPk(request.body.showId);
       if (foundShow === null) {
         response
           .status(404)
